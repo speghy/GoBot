@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Run History</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        .history-block {
+            flex: 1;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            height: 600px;
+            overflow-y: auto;
+        }
+        .log-block {
+            flex: 2;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+        h2 {
+            margin-top: 0;
+        }
+        pre {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        .history-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        .history-list li {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            cursor: pointer;
+        }
+        .history-list li:hover {
+            background-color: #f0f0f0;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        .controls button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        .controls button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Блок истории -->
+        <div class="history-block">
+            <h2>Run History</h2>
+            <ul class="history-list" id="history-list">
+                <li>Loading...</li>
+            </ul>
+        </div>
+
+        <!-- Блок лога -->
+        <div class="log-block">
+            <h2>Log Output</h2>
+            <div class="controls">
+                <button id="save-log-button" disabled>Save Log</button>
+            </div>
+            <pre id="log-output">Select a log to view</pre>
+        </div>
+    </div>
+
+    <script>
+        // Функция для загрузки списка логов
+        async function loadHistory() {
+            try {
+                const response = await fetch("/logs");
+                const logs = await response.json();
+
+                const historyList = document.getElementById("history-list");
+                historyList.innerHTML = "";
+
+                logs.forEach(log => {
+                    const li = document.createElement("li");
+                    li.textContent = log;
+                    li.addEventListener("click", () => displayLog(log));
+                    historyList.appendChild(li);
+                });
+
+                if (logs.length === 0) {
+                    const li = document.createElement("li");
+                    li.textContent = "No logs available";
+                    historyList.appendChild(li);
+                }
+            } catch (error) {
+                console.error("Error loading history:", error);
+            }
+        }
+
+        // Функция для отображения лога
+        async function displayLog(logName) {
+            try {
+                const response = await fetch(`/logs/${logName}`);
+                const logContent = await response.text();
+
+                const logOutput = document.getElementById("log-output");
+                logOutput.textContent = logContent;
+
+                // Активируем кнопку Save Log
+                const saveLogButton = document.getElementById("save-log-button");
+                saveLogButton.disabled = false;
+                saveLogButton.dataset.logName = logName;
+            } catch (error) {
+                console.error("Error displaying log:", error);
+            }
+        }
+
+        // Функция для сохранения лога
+        function saveLog(logName, logContent) {
+            const blob = new Blob([logContent], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = logName;
+            a.click();
+
+            URL.revokeObjectURL(url);
+        }
+
+        // Обработчик для кнопки Save Log
+        document.getElementById("save-log-button").addEventListener("click", () => {
+            const logName = document.getElementById("save-log-button").dataset.logName;
+            const logContent = document.getElementById("log-output").textContent;
+            if (logName && logContent) {
+                saveLog(logName, logContent);
+            }
+        });
+
+        // Загружаем историю при открытии страницы
+        loadHistory();
+    </script>
+</body>
+</html>
