@@ -265,6 +265,7 @@ func executeScript(task Task) {
 	if err != nil {
 		if task.Ctx.Err() == context.Canceled {
 			log.Printf("Script %s was canceled", task.ID)
+			cmd.Process.Kill()
 		} else {
 			log.Printf("Script execution error: %v", err)
 		}
